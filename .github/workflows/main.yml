@@ -1,0 +1,38 @@
+name: Build Steamless
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2019
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.3
+      with:
+        vs-version: '[16.0,17.0)'
+    
+    - name: Build without restore
+      run: msbuild Steamless.sln /p:Configuration=Release /p:Platform="Any CPU" /t:Build /m /v:minimal
+      continue-on-error: false
+    
+    - name: Find all EXE files
+      run: |
+        Write-Host "=== All EXE files in workspace ==="
+        Get-ChildItem -Path . -Recurse -Filter "*.exe" | Select-Object FullName
+      shell: pwsh
+    
+    - name: Upload binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: Steamless-Binaries
+        path: |
+          Steamless/bin/Release/
+          Steamless.CLI/bin/Release/
+        if-no-files-found: warn
