@@ -1,0 +1,43 @@
+name: Build Steamless
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Setup NuGet
+      uses: nuget/setup-nuget@v2
+    
+    - name: Restore NuGet packages
+      run: nuget restore Steamless.sln
+    
+    - name: Build solution
+      run: msbuild Steamless.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+    
+    - name: List all Release folders
+      run: |
+        Write-Host "=== Searching for Release folders ==="
+        Get-ChildItem -Path . -Recurse -Directory -Filter "Release" | ForEach-Object {
+          Write-Host "`nFolder: $($_.FullName)"
+          Get-ChildItem $_.FullName
+        }
+      shell: pwsh
+    
+    - name: Upload all Release binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: Steamless-Build
+        path: |
+          **/bin/Release/**
+        if-no-files-found: error
